@@ -2,9 +2,12 @@ const $ = require("jquery");
 
 const path = require("path");
 const fs = require("fs");
-$(document).ready(function() {
+let myEditor, myMonaco;
+$(document).ready(async function() {
+    myEditor = await createEditor();
+    //    set editor content
 
-
+    // ***************************File explorer logic*****************************
     let src = process.cwd();
     let name = path.basename(src);
     let pObj = {
@@ -16,29 +19,37 @@ $(document).ready(function() {
     chArr.unshift(pObj);
     console.log(chArr);
     $("#tree").jstree({
-        // so that create works
-        "core": {
-            "check_callback": true,
-            "data": chArr
-        },
-    }).on("open_node.jstree", function(e, data) {
-        let children = data.node.children;
-        // console.log(children)
-        for (let i = 0; i < children.length; i++) {
-            let gcNodes = createChildNode(children[i]);
-            // console.log(gcNodes);
-            for (let j = 0; j < gcNodes.length; j++) {
-                // data array 
-                // console.log("inside gc")
-                console.log(children[i])
-                let isGcPresent = $('#tree').jstree(true).get_node(gcNodes[j].id);
-                if (isGcPresent) {
-                    return;
+            // so that create works
+            "core": {
+                "check_callback": true,
+                "data": chArr
+            },
+            // when a directory is opened
+        }).on("open_node.jstree", function(e, data) {
+            // console.log(data);
+            let children = data.node.children;
+            // console.log(children)
+            for (let i = 0; i < children.length; i++) {
+                let gcNodes = createChildNode(children[i]);
+                // console.log(gcNodes);
+                for (let j = 0; j < gcNodes.length; j++) {
+                    // data array 
+                    // console.log("inside gc")
+                    $("#tree").jstree().create_node(children[i], gcNodes[j], "last");
                 }
-                $("#tree").jstree().create_node(children[i], gcNodes[j], "first");
             }
-        }
-    })
+        })
+        .on("select_node.jstree", function(e, data) {
+            console.log("select event occured");
+            let src = data.node.id;
+            let isFile = fs.lstatSync(src).isFile();
+            if (!isFile) {
+                return;
+            }
+            setData(src);
+            // set name on tab
+            createTab(src);
+        });
 })
 
 function createChildNode(src) {
@@ -61,6 +72,76 @@ function createChildNode(src) {
         chArr.push(chObj);
     }
     return chArr
+}
+// npm install monaco-editor
+function createEditor() {
+    const path = require('path');
+    const amdLoader = require('./node_modules/monaco-editor/min/vs/loader.js');
+    const amdRequire = amdLoader.require;
+    const amdDefine = amdLoader.require.define;
+    amdRequire.config({
+        baseUrl: './node_modules/monaco-editor/min'
+    });
+    // workaround monaco-css not understanding the environment
+    self.module = undefined;
+    return new Promise(function(resolve, reject) {
+        amdRequire(['vs/editor/editor.main'], function() {
+            var editor = monaco.editor.create(document.getElementById('code-editor'), {
+                value: [
+                    'function x() {',
+                    '\tconsole.log("Hello world!");',
+                    '}'
+                ].join('\n'),
+                language: 'javascript'
+            });
+            console.log("line number 100")
+            myMonaco = monaco;
+            resolve(editor);
+        });
+    })
+
+}
+// dynamically 
+// callback 
+function createTab(src) {
+    let fName = path.basename(src);
+    $(".tab-container").append(`
+    <div class="tab" ><span onclick=handleClick(this) id=${src}>${fName}</span>
+    <i class="fas fa-times" onclick=handleClose(this) id=${src}></i>
+    </div>`);
+}
+
+function handleClick(elem) {
+    // console.log("clicked");
+    let src = $(elem).attr("id");
+    setData(src);
+}
+
+function handleClose(elem) {
+    console.log("closed");
+    // remove current tab 
+    $(elem).parent().remove();
+    //set content of first tab
+    // LRU cache 
+    let src = $($(".tab-container span")[0]).attr("id");
+    if (src) {
+        setData(src);
+    }
+
+}
+
+function setData(src) {
+    let content = fs.readFileSync(src) + "";
+    //    show in editor
+    // console.log(content);
+    myEditor.getModel().setValue(content);
+    // how to set language in monaco editor
+    let ext = src.split(".").pop();
+
+    if (ext == "js") {
+        ext = "javascript"
+    }
+    myMonaco.editor.setModelLanguage(myEditor.getModel(), ext);
 }
 // Event bubbling
 // $("#tree").on("click", function () {

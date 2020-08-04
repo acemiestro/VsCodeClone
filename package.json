@@ -12,5 +12,8 @@
     "license": "ISC",
     "devDependencies": {
         "jquery": "^3.5.1"
+    },
+    "dependencies": {
+        "monaco-editor": "^0.20.0"
     }
 }
