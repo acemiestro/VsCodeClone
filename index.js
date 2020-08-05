@@ -1,12 +1,12 @@
 const $ = require("jquery");
-
 const path = require("path");
 const fs = require("fs");
+
 let myEditor, myMonaco;
+
 $(document).ready(async function() {
     myEditor = await createEditor();
     //    set editor content
-
     // ***************************File explorer logic*****************************
     let src = process.cwd();
     let name = path.basename(src);
@@ -61,9 +61,7 @@ function createChildNode(src) {
     let children = fs.readdirSync(src);
     let chArr = [];
     for (let i = 0; i < children.length; i++) {
-
         let cPath = path.join(src, children[i]);
-
         let chObj = {
             id: cPath,
             parent: src,
@@ -106,7 +104,7 @@ function createEditor() {
 function createTab(src) {
     let fName = path.basename(src);
     $(".tab-container").append(`
-    <div class="tab" ><span onclick=handleClick(this) id=${src}>${fName}</span>
+            <div class="tab" ><span onclick=handleClick(this) id=${src}>${fName}</span>
     <i class="fas fa-times" onclick=handleClose(this) id=${src}></i>
     </div>`);
 }
@@ -127,7 +125,6 @@ function handleClose(elem) {
     if (src) {
         setData(src);
     }
-
 }
 
 function setData(src) {
@@ -137,12 +134,33 @@ function setData(src) {
     myEditor.getModel().setValue(content);
     // how to set language in monaco editor
     let ext = src.split(".").pop();
-
     if (ext == "js") {
         ext = "javascript"
     }
     myMonaco.editor.setModelLanguage(myEditor.getModel(), ext);
 }
+
+const os = require("os");
+const pty = require("node-pty");
+const Terminal = require("xterm").Terminal;
+
+const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
+const ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
+    cwd: process.cwd(),
+    env: process.env
+});
+
+// Initialize xterm.js and attach it to the DOM
+const xterm = new Terminal();
+xterm.open(document.getElementById('xterm'));
+// Setup communication between xterm.js and node-pty
+xterm.onData(data => ptyProcess.write(data));
+ptyProcess.on('data', function(data) {
+    xterm.write(data);
+});
 // Event bubbling
 // $("#tree").on("click", function () {
 //     let children = fs.readdirSync(src);
