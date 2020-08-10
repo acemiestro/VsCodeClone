@@ -19,37 +19,113 @@ $(document).ready(async function() {
     chArr.unshift(pObj);
     console.log(chArr);
     $("#tree").jstree({
-            // so that create works
-            "core": {
-                "check_callback": true,
-                "data": chArr
-            },
-            // when a directory is opened
-        }).on("open_node.jstree", function(e, data) {
-            // console.log(data);
-            let children = data.node.children;
-            // console.log(children)
-            for (let i = 0; i < children.length; i++) {
-                let gcNodes = createChildNode(children[i]);
-                // console.log(gcNodes);
-                for (let j = 0; j < gcNodes.length; j++) {
-                    // data array 
-                    // console.log("inside gc")
-                    $("#tree").jstree().create_node(children[i], gcNodes[j], "last");
-                }
+        // so that create works
+        "core": {
+            "check_callback": true,
+            "data": chArr,
+            "themes": {
+                "icons": false
             }
-        })
-        .on("select_node.jstree", function(e, data) {
-            console.log("select event occured");
-            let src = data.node.id;
-            let isFile = fs.lstatSync(src).isFile();
-            if (!isFile) {
-                return;
+
+        },
+        // when a directory is opened
+    }).on("open_node.jstree", function(e, data) {
+        // console.log(data);
+        let children = data.node.children;
+        // console.log(children)
+        for (let i = 0; i < children.length; i++) {
+            let gcNodes = createChildNode(children[i]);
+            // console.log(gcNodes);
+            for (let j = 0; j < gcNodes.length; j++) {
+                // data array 
+                // console.log("inside gc")
+                $("#tree").jstree().create_node(children[i], gcNodes[j], "last");
             }
-            setData(src);
-            // set name on tab
-            createTab(src);
-        });
+        }
+    }).on("select_node.jstree", function(e, data) {
+        console.log("select event occured");
+        let src = data.node.id;
+        let isFile = fs.lstatSync(src).isFile();
+
+        if (!isFile) {
+            return;
+        }
+        setData(src);
+        // set name on tab
+        createTab(src);
+    });
+    const os = require('os');
+    const pty = require('node-pty');
+    // UI 
+    const Terminal = require('xterm').Terminal;
+    // Initialize node-pty with an appropriate shell
+    const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
+    // Magic
+    const ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-color',
+        cols: 80,
+        rows: 30,
+        cwd: process.cwd(),
+        env: process.env,
+
+    });
+    // console.log(process.env);
+    // Initialize xterm.js and attach it to the DOM
+    let { FitAddon } = require('xterm-addon-fit');
+    const xterm = new Terminal();
+    const fitAddon = new FitAddon();
+    xterm.loadAddon(fitAddon);
+
+    xterm.setOption('theme', { background: 'rebeccapurple' });
+    // Make the terminal's size and geometry fit the size of #terminal-container
+    // document
+    xterm.open(document.getElementById('terminal'));
+    // Setup communication between xterm.js and node-pty
+    xterm.onData(function(data) {
+        // console.log("Command "+data);
+        ptyProcess.write(data)
+    });
+    // Magic
+    ptyProcess.on('data', function(data) {
+        xterm.write(data);
+    });
+
+    fitAddon.fit();
+    myMonaco.editor.defineTheme('dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [{ background: '#1e2024' }],
+        "colors": {
+            "editor.foreground": "#F8F8F8",
+            "editor.background": "#1e2024",
+            "editor.selectionBackground": "#DDF0FF33",
+            "editor.lineHighlightBackground": "#FFFFFF08",
+            "editorCursor.foreground": "#A7A7A7",
+            "editorWhitespace.foreground": "#FFFFFF40"
+        }
+    });
+    myMonaco.editor.defineTheme('light', {
+        "base": "vs",
+        "inherit": true,
+        rules: [{ background: '#1e2024' }],
+        "colors": {
+            "editor.foreground": "#3B3B3B",
+            "editor.background": "#FFFFFF",
+            "editor.selectionBackground": "#BAD6FD",
+            "editor.lineHighlightBackground": "#00000012",
+            "editorCursor.foreground": "#000000",
+            "editorWhitespace.foreground": "#BFBFBF"
+        }
+    });
+    let isDark = false;
+    $("#toggle").on("click", function() {
+        if (isDark) {
+            myMonaco.editor.setTheme('light');
+        } else {
+            myMonaco.editor.setTheme('dark');
+        }
+        isDark = !isDark;
+    })
 })
 
 function createChildNode(src) {
@@ -104,8 +180,8 @@ function createEditor() {
 function createTab(src) {
     let fName = path.basename(src);
     $(".tab-container").append(`
-            <div class="tab" ><span onclick=handleClick(this) id=${src}>${fName}</span>
-    <i class="fas fa-times" onclick=handleClose(this) id=${src}></i>
+            <div class="tab" ><span onclick=handleClick(this) id="${src}">${fName}</span>
+    <i class="fas fa-times" onclick=handleClose(this) id="${src}"></i>
     </div>`);
 }
 
@@ -140,27 +216,27 @@ function setData(src) {
     myMonaco.editor.setModelLanguage(myEditor.getModel(), ext);
 }
 
-const os = require("os");
-const pty = require("node-pty");
-const Terminal = require("xterm").Terminal;
+// const os = require("os");
+// const pty = require("node-pty");
+// const Terminal = require("xterm").Terminal;
 
-const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
-const ptyProcess = pty.spawn(shell, [], {
-    name: 'xterm-color',
-    cols: 80,
-    rows: 30,
-    cwd: process.cwd(),
-    env: process.env
-});
+// const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
+// const ptyProcess = pty.spawn(shell, [], {
+//     name: 'xterm-color',
+//     cols: 80,
+//     rows: 30,
+//     cwd: process.cwd(),
+//     env: process.env
+// });
 
-// Initialize xterm.js and attach it to the DOM
-const xterm = new Terminal();
-xterm.open(document.getElementById('xterm'));
-// Setup communication between xterm.js and node-pty
-xterm.onData(data => ptyProcess.write(data));
-ptyProcess.on('data', function(data) {
-    xterm.write(data);
-});
+// // Initialize xterm.js and attach it to the DOM
+// const xterm = new Terminal();
+// xterm.open(document.getElementById('xterm'));
+// // Setup communication between xterm.js and node-pty
+// xterm.onData(data => ptyProcess.write(data));
+// ptyProcess.on('data', function(data) {
+//     xterm.write(data);
+// });
 // Event bubbling
 // $("#tree").on("click", function () {
 //     let children = fs.readdirSync(src);

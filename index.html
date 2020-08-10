@@ -8,7 +8,7 @@
     <!-- bootstrap -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css">
-    <link rel="Stylesheet" href="./node_modules/xterm/css/xterm.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -19,6 +19,9 @@
             <button class="btn save">Save</button>
         </div>
         <div class="tab-container"></div>
+        <div class="btn-container">
+            <button class="btn toggle" id="toggle">Toggle</button>
+        </div>
     </div>
     <div id="container" class="container">
         <div id="file-explorer" class="file-explorer">
@@ -29,7 +32,7 @@
                 <div id="code-editor"></div>
             </div>
             <div class="terminal-container">
-                <div id="xterm"></div>
+                <div id="terminal"></div>
             </div>
         </div>
     </div>
